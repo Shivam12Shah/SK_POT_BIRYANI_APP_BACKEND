@@ -56,6 +56,20 @@ Most endpoints require authentication using JWT tokens stored in HTTP-only cooki
 
 Food items support image uploads (up to 6 images per item). Images are stored in the `uploads/` directory and served statically.
 
-## Development
+## Testing
 
-To regenerate the Swagger documentation after making changes to routes, restart the server. The documentation is automatically generated from JSDoc comments in the route files.
+Automated integration tests are implemented using Jest and Supertest.
+
+### Running Tests
+To run the full test suite:
+```bash
+npm test
+```
+
+### Test Coverage
+- **Auth**: Registration, Login (OTP), Protected Routes.
+- **Food**: CRUD operations, Pagination, Stock updates.
+- **Cart**: Add, Update, Remove items, Totals calculation.
+- **Orders**: Checkout flow, Order creation, Tracking.
+
+Tests use separate MongoDB databases (e.g., `foodcms_test_auth`) to ensure data isolation. The `app.js` has been refactored to export the Express app without automatically listening, allowing Supertest to spin up ephemeral servers.

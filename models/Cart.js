@@ -14,10 +14,9 @@ const cartSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-cartSchema.pre('save', function (next) {
+cartSchema.pre('save', function () {
     this.updatedAt = Date.now();
     this.grandTotal = this.items.reduce((acc, item) => acc + item.total, 0);
-    next();
 });
 
 module.exports = mongoose.model('Cart', cartSchema);

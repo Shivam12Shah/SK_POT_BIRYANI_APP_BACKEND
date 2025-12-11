@@ -38,37 +38,42 @@ const User = require('../models/User');
  *         description: Order created
  */
 router.post('/', auth, async (req, res) => {
-    const { customer, paymentMethod } = req.body;
+    try {
+        const { customer, paymentMethod } = req.body;
 
-    const cart = await Cart.findOne({ user: req.user._id }).populate('items.food');
-    if (!cart || cart.items.length === 0) {
-        return res.status(400).json({ message: 'Cart is empty' });
+        const cart = await Cart.findOne({ user: req.user._id }).populate('items.food');
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({ message: 'Cart is empty' });
+        }
+
+        // Create order items snapshot
+        const orderItems = cart.items.map(item => ({
+            food: item.food._id,
+            title: item.food.title,
+            qty: item.quantity,
+            price: item.price,
+            total: item.total
+        }));
+
+        const order = await Order.create({
+            user: req.user._id,
+            customer,
+            items: orderItems,
+            total: cart.grandTotal,
+            paymentMethod: paymentMethod || 'COD',
+            paymentStatus: 'pending' // Default
+        });
+
+        // Clear cart
+        cart.items = [];
+        cart.grandTotal = 0;
+        await cart.save();
+
+        res.json(order);
+    } catch (error) {
+        console.error('Create Order Error:', error);
+        res.status(500).json({ message: error.message });
     }
-
-    // Create order items snapshot
-    const orderItems = cart.items.map(item => ({
-        food: item.food._id,
-        title: item.food.title,
-        qty: item.quantity,
-        price: item.price,
-        total: item.total
-    }));
-
-    const order = await Order.create({
-        user: req.user._id,
-        customer,
-        items: orderItems,
-        total: cart.grandTotal,
-        paymentMethod: paymentMethod || 'COD',
-        paymentStatus: 'pending' // Default
-    });
-
-    // Clear cart
-    cart.items = [];
-    cart.grandTotal = 0;
-    await cart.save();
-
-    res.json(order);
 });
 
 /**
@@ -84,8 +89,12 @@ router.post('/', auth, async (req, res) => {
  *         description: List of orders
  */
 router.get('/', auth, async (req, res) => {
-    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(orders);
+    try {
+        const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
+        res.json(orders);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 });
 
 /**

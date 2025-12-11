@@ -39,6 +39,12 @@ app.use('/api/partners', partnerRoutes);
 const PORT = process.env.PORT || 4000;
 const MONGO = process.env.MONGO_URI || 'mongodb://localhost:27017/foodcms';
 
-mongoose.connect(MONGO)
-  .then(() => app.listen(PORT, () => console.log('Server running on', PORT)))
-  .catch(err => console.error(err));
+// Export app for testing
+module.exports = app;
+
+// Only start server if run directly
+if (require.main === module) {
+  mongoose.connect(MONGO)
+    .then(() => app.listen(PORT, () => console.log('Server running on', PORT)))
+    .catch(err => console.error(err));
+}
