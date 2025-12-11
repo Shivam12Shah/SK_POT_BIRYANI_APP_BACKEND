@@ -1,17 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const upload = multer();
 const Otp = require('../models/Otp');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
-
-/**
- * @swagger
- * tags:
- *   name: Authentication
- *   description: Authentication and user management endpoints
- */
-
 // NOTE: In production hash OTPs and use an SMS provider (Twilio, etc.)
 function generateOtp() {
   // Using dummy OTP for development/testing
@@ -19,51 +13,12 @@ function generateOtp() {
   return dummyOtp;
 }
 
-/**
- * @swagger
- * /api/auth/send-otp:
- *   post:
- *     summary: Send OTP to phone number
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - phone
- *             properties:
- *               phone:
- *                 type: string
- *                 description: Phone number to send OTP to
- *                 example: "+1234567890"
- *     responses:
- *       200:
- *         description: OTP sent successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "OTP sent (development console)"
- *       400:
- *         description: Phone number is required
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-
-
-router.post('/send-otp', async (req, res) => {
+router.post('/send-otp', upload.none(), async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ message: 'Phone required' });
 
   const code = generateOtp();
-  const expiresAt = new Date(Date.now() + 1000*60*5); // 5 min
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 5); // 5 min
 
   await Otp.create({ phone, code, expiresAt });
 
@@ -117,12 +72,13 @@ router.post('/send-otp', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/verify-otp', async (req, res) => {
-  const { phone, code } = req.body;
-  if (!phone || !code) return res.status(400).json({ message: 'phone and code required' });
+router.post('/verify-otp', upload.none(), async (req, res) => {
+  console.log("gfhjgfhfhgfhjgfghjfhgf", req.body);
+  const { phone, otp } = req.body;
+  if (!phone || !otp) return res.status(400).json({ message: 'phone and otp required' });
 
-  const otp = await Otp.findOne({ phone, code });
-  if (!otp) return res.status(400).json({ message: 'Invalid or expired OTP' });
+  const otpData = await Otp.findOne({ phone, code: otp });
+  if (!otpData) return res.status(400).json({ message: 'Invalid or expired OTP' });
 
   // upsert user
   let user = await User.findOne({ phone });
@@ -133,12 +89,12 @@ router.post('/verify-otp', async (req, res) => {
 
   res.cookie('token', token, {
     httpOnly: true,
-    maxAge: 30*24*60*60*1000, // 30 days
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     secure: process.env.NODE_ENV === 'production'
   });
 
   await Otp.deleteMany({ phone }); // cleanup
-  res.json({ message: 'Logged in', user: { id: user._id, phone: user.phone } });
+  res.json({ message: 'Logged in', token, user: { id: user._id, phone: user.phone } });
 });
 
 /**

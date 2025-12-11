@@ -227,9 +227,11 @@ router.put('/:id', auth, upload.array('images', 6), async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Food'
  */
-router.post('/:id/stock-in', auth, async (req, res) => {
-  const { qty } = req.body;
+router.post('/:id/stock-in', auth, upload.none(), async (req, res) => {
+  const { qty } = req.body || {};
   const food = await Food.findById(req.params.id);
+  if (!food) return res.status(404).json({ message: 'Food not found' });
+
   food.stockQty += Number(qty || 1);
   food.inStock = food.stockQty > 0;
   await food.save();
@@ -269,9 +271,11 @@ router.post('/:id/stock-in', auth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Food'
  */
-router.post('/:id/stock-out', auth, async (req, res) => {
-  const { qty } = req.body;
+router.post('/:id/stock-out', auth, upload.none(), async (req, res) => {
+  const { qty } = req.body || {};
   const food = await Food.findById(req.params.id);
+  if (!food) return res.status(404).json({ message: 'Food not found' });
+
   food.stockQty = Math.max(0, food.stockQty - Number(qty || 1));
   food.inStock = food.stockQty > 0;
   await food.save();
@@ -308,6 +312,56 @@ router.post('/:id/stock-out', auth, async (req, res) => {
 router.delete('/:id', auth, async (req, res) => {
   await Food.findByIdAndDelete(req.params.id);
   res.json({ message: 'Deleted' });
+});
+
+/**
+ * @swagger
+ * /api/food/{id}/status:
+ *   patch:
+ *     summary: Update food status and stock
+ *     tags: [Food Management]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               inStock:
+ *                 type: boolean
+ *               stockQty:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Status updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Food'
+ */
+router.patch('/:id/status', auth, async (req, res) => {
+  const { inStock, stockQty } = req.body;
+  const update = {};
+
+  if (stockQty !== undefined) update.stockQty = Number(stockQty);
+  if (inStock !== undefined) update.inStock = Boolean(inStock);
+
+  // Business Logic: If stock > 0 but user said inStock=false, keep it false?
+  // Or if stock=0, force inStock=false? 
+  // Let's rely on explicit inputs, but auto-set false if stock is 0.
+  if (update.stockQty === 0) update.inStock = false;
+
+  const food = await Food.findByIdAndUpdate(req.params.id, update, { new: true });
+  if (!food) return res.status(404).json({ message: 'Food not found' });
+
+  res.json(food);
 });
 
 module.exports = router;

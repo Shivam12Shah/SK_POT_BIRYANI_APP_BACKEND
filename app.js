@@ -2,7 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const cookieParser = require('cookie-parser');
+const cookieParser = require('cookie-parser')
 const cors = require('cors');
 const path = require('path');
 const { swaggerUi, swaggerSpec } = require('./swagger/swagger');
@@ -16,6 +16,7 @@ const partnerRoutes = require('./routes/partner');
 const app = express();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN || 'http://localhost:3000',

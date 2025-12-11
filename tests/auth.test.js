@@ -75,11 +75,11 @@ describe('Auth API', () => {
 
         const res = await request(app)
             .post('/api/auth/verify-otp')
-            .send({ phone: userPhone, code: '123456' }); // Known dummy OTP
+            .send({ phone: userPhone, otp: '123456' }); // Known dummy OTP
 
         expect(res.statusCode).toEqual(200);
         expect(res.body).toHaveProperty('message', 'Logged in');
-        expect(res.headers['set-cookie']).toBeDefined();
+        expect(res.body).toHaveProperty('token'); // Check for token
         cookie = res.headers['set-cookie'];
     });
 

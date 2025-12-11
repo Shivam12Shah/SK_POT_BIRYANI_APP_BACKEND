@@ -27,7 +27,7 @@ describe('Order API', () => {
         await request(app).post('/api/auth/send-otp').send({ phone });
         const authRes = await request(app)
             .post('/api/auth/verify-otp')
-            .send({ phone, code: '123456' });
+            .send({ phone, otp: '123456' });
         cookie = authRes.headers['set-cookie'];
 
         // Create Food

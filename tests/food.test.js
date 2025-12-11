@@ -25,7 +25,7 @@ describe('Food API', () => {
         await request(app).post('/api/auth/send-otp').send({ phone });
         const res = await request(app)
             .post('/api/auth/verify-otp')
-            .send({ phone, code: '123456' });
+            .send({ phone, otp: '123456' });
         cookie = res.headers['set-cookie'];
     });
 
@@ -71,7 +71,18 @@ describe('Food API', () => {
         expect(res.body.price).toBe(300);
     });
 
-    // 4. Stock Management
+    // 4. Test Stock Update (In/Out) - Increase
+    it('should increase stock', async () => {
+        const res = await request(app)
+            .post(`/api/food/${foodId}/stock-in`)
+            .set('Cookie', cookie)
+            .send({ qty: 5 });
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.stockQty).toBe(15); // 10 (initial) + 5 (increase)
+    });
+
+    // 5. Test Stock Update (In/Out) - Decrease
     it('should decrease stock', async () => {
         const res = await request(app)
             .post(`/api/food/${foodId}/stock-out`)
@@ -79,11 +90,33 @@ describe('Food API', () => {
             .send({ qty: 2 });
 
         expect(res.statusCode).toEqual(200);
-        // Initial was 10, now should be 8
-        expect(res.body.stockQty).toBe(8);
+        // Initial was 10, increased by 5 (15), now decreased by 2 (13)
+        expect(res.body.stockQty).toBe(13);
     });
 
-    // 5. Delete Food
+    // 6. Test PATCH status endpoint
+    it('should update food status and stock', async () => {
+        const res = await request(app)
+            .patch(`/api/food/${foodId}/status`)
+            .set('Cookie', cookie)
+            .send({ inStock: false, stockQty: 0 });
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.inStock).toBe(false);
+        expect(res.body.stockQty).toBe(0);
+
+        // Re-enable
+        const res2 = await request(app)
+            .patch(`/api/food/${foodId}/status`)
+            .set('Cookie', cookie)
+            .send({ inStock: true, stockQty: 100 });
+
+        expect(res2.statusCode).toEqual(200);
+        expect(res2.body.inStock).toBe(true);
+        expect(res2.body.stockQty).toBe(100);
+    });
+
+    // 7. Delete Food
     it('should delete food item', async () => {
         const res = await request(app)
             .delete(`/api/food/${foodId}`)
