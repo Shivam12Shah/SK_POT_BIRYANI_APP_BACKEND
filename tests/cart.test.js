@@ -54,7 +54,7 @@ describe('Cart API', () => {
         expect(res.statusCode).toEqual(200);
         expect(res.body.items.length).toBe(1);
         expect(res.body.items[0].quantity).toBe(2);
-        expect(res.body.grandTotal).toBe(200);
+        expect(res.body.grandTotal).toBe(300); // 200 (items) + 100 (delivery)
     });
 
     // 2. Update Qty
@@ -66,7 +66,7 @@ describe('Cart API', () => {
 
         expect(res.statusCode).toEqual(200);
         expect(res.body.items[0].quantity).toBe(5);
-        expect(res.body.grandTotal).toBe(500);
+        expect(res.body.grandTotal).toBe(600); // 500 (items) + 100 (delivery)
     });
 
     // 3. Remove Item
@@ -78,6 +78,6 @@ describe('Cart API', () => {
 
         expect(res.statusCode).toEqual(200);
         expect(res.body.items.length).toBe(0);
-        expect(res.body.grandTotal).toBe(0);
+        expect(res.body.grandTotal).toBe(100); // 0 (items) + 100 (delivery)
     });
 });

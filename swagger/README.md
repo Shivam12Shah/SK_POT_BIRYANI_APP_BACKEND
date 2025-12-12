@@ -18,7 +18,7 @@ The API includes the following main sections:
 - `POST /api/auth/logout` - Logout user
 
 ### Food Management (`/api/food`)
-- `GET /api/food` - Get all food items (supports pagination: `?page=1&limit=10`)
+- `GET /api/food` - Get all food items (supports pagination: `?page=1&limit=20`)
 - `POST /api/food` - Create new food item (supports images, dips, beverages, nutrition)
 - `PUT /api/food/{id}` - Update food item
 - `POST /api/food/{id}/stock-in` - Increase stock quantity

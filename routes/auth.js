@@ -14,6 +14,7 @@ function generateOtp() {
 }
 
 router.post('/send-otp', upload.none(), async (req, res) => {
+  console.log("gfhjgfhfhgfhjgfghjfhgf", req.body);
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ message: 'Phone required' });
 
@@ -74,7 +75,7 @@ router.post('/send-otp', upload.none(), async (req, res) => {
  */
 router.post('/verify-otp', upload.none(), async (req, res) => {
   console.log("gfhjgfhfhgfhjgfghjfhgf", req.body);
-  const { phone, otp } = req.body;
+  const { phone, otp, role } = req.body;
   if (!phone || !otp) return res.status(400).json({ message: 'phone and otp required' });
 
   const otpData = await Otp.findOne({ phone, code: otp });
@@ -82,10 +83,27 @@ router.post('/verify-otp', upload.none(), async (req, res) => {
 
   // upsert user
   let user = await User.findOne({ phone });
-  if (!user) user = await User.create({ phone, isVerified: true });
+  if (!user) {
+    // Create new user with role from frontend (defaults to 'user' if not provided)
+    user = await User.create({
+      phone,
+      isVerified: true,
+      role: role || 'user'
+    });
+  } else {
+    // Update existing user's role if provided
+    if (role && ['admin', 'user', 'partner'].includes(role)) {
+      user.role = role;
+      await user.save();
+    }
+  }
 
-  // create JWT cookie valid ~30 days
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secretkey', { expiresIn: '30d' });
+  // create JWT cookie valid ~30 days - include role in token
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET || 'secretkey',
+    { expiresIn: '30d' }
+  );
 
   res.cookie('token', token, {
     httpOnly: true,
@@ -94,7 +112,15 @@ router.post('/verify-otp', upload.none(), async (req, res) => {
   });
 
   await Otp.deleteMany({ phone }); // cleanup
-  res.json({ message: 'Logged in', token, user: { id: user._id, phone: user.phone } });
+  res.json({
+    message: 'Logged in',
+    token,
+    user: {
+      id: user._id,
+      phone: user.phone,
+      role: user.role
+    }
+  });
 });
 
 /**
